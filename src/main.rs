@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 use std::io::{self, Write};
 use std::net::{IpAddr, TcpStream};
 use std::sync::mpsc::{channel, Sender};
@@ -78,6 +79,8 @@ fn scan(tx: Sender<u16>, start_port: u16, addr: IpAddr, num_threads: u16) {
 fn main() {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
+
+    println!("{} {} {}", args[0], args[1], args[2]);
 
     let arguments = Arguments::new(&args).unwrap_or_else(|err| {
         if err.contains("help") {

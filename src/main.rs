@@ -1,9 +1,11 @@
 #[allow(dead_code)]
+use std::env;
 use std::io::{self, Write};
 use std::net::{IpAddr, TcpStream};
+use std::process;
+use std::str::FromStr;
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
-use std::{env, process, str::FromStr};
 
 const MAX: u16 = 65535;
 
@@ -16,7 +18,7 @@ struct Arguments {
 impl Arguments {
     fn new(args: &[String]) -> Result<Arguments, &'static str> {
         if args.len() < 2 {
-            return Err("less arguments");
+            return Err("not enough arguments");
         } else if args.len() > 4 {
             return Err("too many arguments");
         }
@@ -32,7 +34,7 @@ impl Arguments {
             if flag.contains("-h") || flag.contains("-help") && args.len() == 2 {
                 println!(
                     "Usage: -j to select how many threads you want
-                \r\n      -h or -help to show this help message"
+                \n\r       -h or -help to show this help message"
                 );
                 return Err("help");
             } else if flag.contains("-h") || flag.contains("-help") {
@@ -40,7 +42,7 @@ impl Arguments {
             } else if flag.contains("-j") {
                 let ipaddr = match IpAddr::from_str(&args[3]) {
                     Ok(s) => s,
-                    Err(_) => return Err("not a valid IP address. Must be IPv4 or IPv6"),
+                    Err(_) => return Err("not a valid IPADDR; must be IPv4 or IPv6"),
                 };
                 let threads = match args[2].parse::<u16>() {
                     Ok(s) => s,
@@ -68,7 +70,8 @@ fn scan(tx: Sender<u16>, start_port: u16, addr: IpAddr, num_threads: u16) {
                 tx.send(port).unwrap();
             }
             Err(_) => {}
-        };
+        }
+
         if (MAX - port) <= num_threads {
             break;
         }
@@ -78,10 +81,11 @@ fn scan(tx: Sender<u16>, start_port: u16, addr: IpAddr, num_threads: u16) {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+    for i in &args {
+        println!("{i}");
+    }
+
     let program = args[0].clone();
-
-    println!("{} {} {}", args[0], args[1], args[2]);
-
     let arguments = Arguments::new(&args).unwrap_or_else(|err| {
         if err.contains("help") {
             process::exit(0);
@@ -92,20 +96,23 @@ fn main() {
     });
 
     let num_threads = arguments.threads;
+    let addr = arguments.ipaddr;
     let (tx, rx) = channel();
-
     for i in 0..num_threads {
         let tx = tx.clone();
-        thread::spawn(move || scan(tx, i, arguments.ipaddr, num_threads));
+
+        thread::spawn(move || {
+            scan(tx, i, addr, num_threads);
+        });
     }
 
     let mut out = vec![];
     drop(tx);
-
     for p in rx {
         out.push(p);
     }
-    print!("");
+
+    println!("");
     out.sort();
     for v in out {
         println!("{} is open", v);

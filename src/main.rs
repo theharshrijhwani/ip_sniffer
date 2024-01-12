@@ -23,6 +23,7 @@ impl Arguments {
             return Err("too many arguments");
         }
         let f = args[1].clone();
+        println!("{f}  - yeh f hai");
         if let Ok(ipaddr) = IpAddr::from_str(&f) {
             return Ok(Arguments {
                 flag: String::from(""),
